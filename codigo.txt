@@ -1,0 +1,243 @@
+/*
+1er Parcial SPD 
+Gargiulo Mundo, Camila
+1J
+*/
+
+#define G 2
+#define F 3
+#define A 4
+#define B 5
+#define C 6
+#define D 7
+#define E 8
+
+#define MOTOR 9
+
+#define SENSOR_TEMP A0
+#define FOTOTRANSISTOR A1  
+
+#define SWITCH 13 
+#define BOTON_SUBIR 12
+#define BOTON_BAJAR 11
+#define BOTON_RESET 10
+
+int contador = 0;
+int sube = 1;
+int baja = 1;
+int reset = 1;
+int subeprevia = 1;
+int bajaprevia = 1;
+int resetprevia = 1;
+
+
+void configurar_displays(int numero);
+void prende_numero(int numero);
+void configurar_estado_leds(int a, int b, int c,
+                        int d, int e, int f, int g);
+void control_botones(int numero);
+void encender_motor(int temperatura, int luz, int contador);
+bool chequear_primo(int contador);
+int devolver_numero_primo(int contador,int boton);
+int calcular_contador(int contador, int presionado, int valorInterruptor);
+
+
+
+void setup()
+{
+  for (int i = 2; i < 9; i++)
+  {
+    pinMode(i, OUTPUT);
+  }
+  pinMode(A4, OUTPUT);
+  pinMode(A5, OUTPUT);
+  pinMode(MOTOR, OUTPUT);
+  pinMode(BOTON_SUBIR,INPUT_PULLUP);
+  pinMode(BOTON_BAJAR,INPUT_PULLUP);
+  pinMode(BOTON_RESET,INPUT_PULLUP);
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  int lecturaSensor = analogRead(SENSOR_TEMP);
+  int temperatura = map(lecturaSensor,20,358,-40,125);
+  int lecturaFototransistor = analogRead(FOTOTRANSISTOR);
+  int luz = map(lecturaFototransistor, 13, 1023, 0, 1000);
+  int valorInterruptor = digitalRead(SWITCH);
+  configurar_displays(contador);
+  int presionado = control_botones();
+  contador = calcular_contador(contador, presionado, valorInterruptor);
+  if(valorInterruptor)
+  {
+  	encender_motor(temperatura, luz, contador);
+  }
+  else 
+  {
+    analogWrite(MOTOR, LOW);
+  }
+}
+
+void encender_motor(int temperatura, int luz, int contador)
+{
+  if(temperatura > contador)
+  {
+    analogWrite(MOTOR, 150);
+    if(luz < 4 || temperatura - contador > 20)
+    {
+      analogWrite(MOTOR, 255);
+    }
+  }
+  else
+  {
+    analogWrite(MOTOR, LOW);
+  }
+}
+
+
+int calcular_contador(int contador, int presionado, int valorInterruptor)
+{
+  if ((presionado == BOTON_SUBIR) && contador < 99)
+  {
+  	contador++;
+  }else if ((presionado == BOTON_BAJAR) && contador > 0)
+  {
+  	contador--;
+  }else if (presionado == BOTON_RESET){
+  	contador = 0;
+  }
+  if(valorInterruptor == 0)
+    {
+    contador = devolver_numero_primo(contador, presionado);
+    }
+  return contador;
+}
+
+
+bool chequear_primo(int contador)
+{
+  bool esPrimo = true;
+  for (int divisor = 2; divisor < contador ;divisor++)
+  {
+    if ((contador % divisor) == 0)
+    {
+      esPrimo = false;
+      break;
+    }
+  }
+  return esPrimo;
+}
+
+int devolver_numero_primo(int contador,int boton)
+{
+  bool esPrimo = chequear_primo(contador);
+  while (esPrimo == false)
+  {
+    if (boton == BOTON_SUBIR)
+    {
+      contador++;
+    }else 
+    {
+      contador--;
+    }
+    esPrimo = chequear_primo(contador);
+  }
+  return contador;
+}
+
+void prende_numero(int numero)
+{
+  switch (numero){
+    case 0:
+    	configurar_estado_leds(1, 1, 1, 1, 1, 1, 0);
+    	break;
+    case 1:
+    	configurar_estado_leds(0, 1, 1, 0, 0, 0, 0);
+    	break;
+    case 2:
+    	configurar_estado_leds(1, 1, 0, 1, 1, 0, 1);
+    	break;
+    case 3:
+    	configurar_estado_leds(1, 1, 1, 1, 0, 0, 1);
+    	break;
+    case 4:
+    	configurar_estado_leds(0, 1, 1, 0, 0, 1, 1);
+    	break;
+    case 5:
+    	configurar_estado_leds(1, 0, 1, 1, 0, 1, 1);
+    	break;
+    case 6:
+   		configurar_estado_leds(1, 0, 1, 1, 1, 1, 1);
+    	break;
+    case 7:
+    	configurar_estado_leds(1, 1, 1, 0, 0, 0, 0);
+    	break;
+    case 8:
+    	configurar_estado_leds(1, 1, 1, 1, 1, 1, 1);
+    	break;
+    case 9:
+    	configurar_estado_leds(1, 1, 1, 1, 0, 1, 1);
+    	break;
+  }
+}
+
+
+void configurar_estado_leds(int a, int b, int c,
+                        int d, int e, int f, int g)
+{
+  digitalWrite(A, a);
+  digitalWrite(B, b);
+  digitalWrite(C, c);
+  digitalWrite(D, d);
+  digitalWrite(E, e);
+  digitalWrite(F, f);
+  digitalWrite(G, g);
+}
+
+void configurar_displays(int numero)
+{
+  int unidad = numero - ((int)(numero/10)*10);
+  digitalWrite(A4, LOW);
+  prende_numero(unidad);
+  delay(50);
+  digitalWrite(A4, HIGH);
+  int decena = numero/10;
+  digitalWrite(A5, LOW);
+  prende_numero(decena);
+  delay(50);
+  digitalWrite(A5, HIGH);
+}
+
+int control_botones(){
+  int sube = digitalRead(BOTON_SUBIR);
+  int baja = digitalRead(BOTON_BAJAR);
+  int reset = digitalRead(BOTON_RESET);
+    
+  if (sube == 1)
+  {
+    subeprevia = 1;
+  }
+  if (baja == 1)
+  {
+    bajaprevia = 1;
+  }
+  if (reset == 1)
+  {
+    resetprevia = 1;
+  }
+  
+  if (sube == 0 && sube != subeprevia)
+  {
+  	subeprevia = sube;
+   	return BOTON_SUBIR;
+  }else if (baja == 0 && baja != bajaprevia)
+  {
+  	bajaprevia = baja;
+    return BOTON_BAJAR;
+  }else if (reset == 0 && reset != resetprevia)
+  {
+  	resetprevia = reset;
+    return BOTON_RESET;
+  }
+  return 0;
+}
