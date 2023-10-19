@@ -32,10 +32,10 @@ int resetprevia = 1;
 
 
 void configurar_displays(int numero);
-void prende_numero(int numero);
+void prender_numero(int numero);
 void configurar_estado_leds(int a, int b, int c,
                         int d, int e, int f, int g);
-void control_botones(int numero);
+void controlar_botones(int numero);
 void encender_motor(int temperatura, int luz, int contador);
 bool chequear_primo(int contador);
 int devolver_numero_primo(int contador,int boton);
@@ -65,8 +65,8 @@ void loop()
   int lecturaFototransistor = analogRead(FOTOTRANSISTOR);
   int luz = map(lecturaFototransistor, 13, 1023, 0, 1000);
   int valorInterruptor = digitalRead(SWITCH);
-  configurar_displays(contador);
-  int presionado = control_botones();
+  configurar_displays(contador); // muestra el numero en los dos displays
+  int presionado = controlar_botones(); 
   contador = calcular_contador(contador, presionado, valorInterruptor);
   if(valorInterruptor)
   {
@@ -79,6 +79,13 @@ void loop()
 }
 
 void encender_motor(int temperatura, int luz, int contador)
+/* A partir de los valores recibidos por parametro
+compara el valor de la temperatura con el contador que es
+seteado por el usuario y si la temperatura es mayor al contador
+encende el motor a 4 rpm
+Cuando la lectura de la luz es menor a 4 y el motor esta encendido
+aumenta su velocidad a 7 rpm
+*/
 {
   if(temperatura > contador)
   {
@@ -96,6 +103,13 @@ void encender_motor(int temperatura, int luz, int contador)
 
 
 int calcular_contador(int contador, int presionado, int valorInterruptor)
+/*
+En base al parametro presionado que indica el pin del boton que se
+presiono, le suma o le resta una unidad al contador. En caso de ser el de
+reset, le asigna 0.
+Ademas, si el valorInterruptor es 0, quiere decir que el usuario eligio
+la opcion de mostrar numeros primos y llama a la funcion.
+*/
 {
   if ((presionado == BOTON_SUBIR) && contador < 99)
   {
@@ -113,22 +127,12 @@ int calcular_contador(int contador, int presionado, int valorInterruptor)
   return contador;
 }
 
-
-bool chequear_primo(int contador)
-{
-  bool esPrimo = true;
-  for (int divisor = 2; divisor < contador ;divisor++)
-  {
-    if ((contador % divisor) == 0)
-    {
-      esPrimo = false;
-      break;
-    }
-  }
-  return esPrimo;
-}
-
 int devolver_numero_primo(int contador,int boton)
+/*
+La funcion recibe un numero y analiza si es primo, en caso de serlo
+lo devuelve, en caso de no, analiza que boton se presiono y en base 
+a eso devuelve el numero primo mas cercano (para arriba o para abajo)
+*/
 {
   bool esPrimo = chequear_primo(contador);
   while (esPrimo == false)
@@ -145,7 +149,21 @@ int devolver_numero_primo(int contador,int boton)
   return contador;
 }
 
-void prende_numero(int numero)
+bool chequear_primo(int contador)
+{
+  bool esPrimo = true;
+  for (int divisor = 2; divisor < contador ;divisor++)
+  {
+    if ((contador % divisor) == 0)
+    {
+      esPrimo = false;
+      break;
+    }
+  }
+  return esPrimo;
+}
+
+void prender_numero(int numero)
 {
   switch (numero){
     case 0:
@@ -195,23 +213,34 @@ void configurar_estado_leds(int a, int b, int c,
 }
 
 void configurar_displays(int numero)
+/*
+A partir de la tecnica de multiplexacion analiza el numero
+recibido por parametro para separarlo en decena y unidad, 
+y mostrarlo en el display correspondiente
+*/
 {
   int unidad = numero - ((int)(numero/10)*10);
   digitalWrite(A4, LOW);
-  prende_numero(unidad);
+  prender_numero(unidad);
   delay(50);
   digitalWrite(A4, HIGH);
   int decena = numero/10;
   digitalWrite(A5, LOW);
-  prende_numero(decena);
+  prender_numero(decena);
   delay(50);
   digitalWrite(A5, HIGH);
 }
 
-int control_botones(){
-  int sube = digitalRead(BOTON_SUBIR);
-  int baja = digitalRead(BOTON_BAJAR);
-  int reset = digitalRead(BOTON_RESET);
+int controlar_botones()
+/*
+Lee los pines de los botones, si hubo un cambio desde la ultima
+vez que se leyeron, retorna el pin que se modifico, si no hubo cambios
+retorna 0
+*/
+{
+  sube = digitalRead(BOTON_SUBIR);
+  baja = digitalRead(BOTON_BAJAR);
+  reset = digitalRead(BOTON_RESET);
     
   if (sube == 1)
   {
@@ -230,14 +259,17 @@ int control_botones(){
   {
   	subeprevia = sube;
    	return BOTON_SUBIR;
-  }else if (baja == 0 && baja != bajaprevia)
+  }
+  else if (baja == 0 && baja != bajaprevia)
   {
   	bajaprevia = baja;
     return BOTON_BAJAR;
-  }else if (reset == 0 && reset != resetprevia)
+  }
+  else if (reset == 0 && reset != resetprevia)
   {
   	resetprevia = reset;
     return BOTON_RESET;
   }
+  
   return 0;
 }
